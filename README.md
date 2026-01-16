@@ -71,6 +71,7 @@ Edit `config/config.ts` with your values:
 | `codeServerPassword` | Password for code-server access | `MyStr0ngP@ss!` |
 | `email` | Email for Let's Encrypt | `me@email.com` |
 | `keyPairName` | EC2 Key Pair name | `my-key-pair` |
+| `additionalSshPublicKeys` | Additional SSH public keys (optional) | `['ssh-rsa AAAA...']` |
 | `instanceType` | EC2 instance type (optional) | `t4g.small` |
 | `volumeSize` | EBS volume size in GB (optional) | `30` |
 | `useElasticIp` | Use static Elastic IP (optional) | `true` |

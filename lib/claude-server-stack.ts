@@ -65,6 +65,19 @@ function validateConfig(cfg: Config): void {
   if (cfg.volumeSize < 8 || cfg.volumeSize > 16384) {
     throw new Error(`volumeSize must be between 8 and 16384 GB, got: ${cfg.volumeSize}`);
   }
+
+  // Validate SSH public keys format
+  if (cfg.additionalSshPublicKeys) {
+    const sshKeyPattern = /^(ssh-rsa|ssh-ed25519|ecdsa-sha2-nistp)/;
+    cfg.additionalSshPublicKeys.forEach((key, index) => {
+      if (!sshKeyPattern.test(key)) {
+        throw new Error(
+          `additionalSshPublicKeys[${index}] is not a valid SSH public key. ` +
+          `Expected format: "ssh-rsa AAAA..." or "ssh-ed25519 AAAA..."`
+        );
+      }
+    });
+  }
 }
 
 /**
@@ -151,13 +164,15 @@ export class ClaudeServerStack extends Stack {
     );
 
     // Read and configure user data script
+    const additionalSshKeys = config.additionalSshPublicKeys?.join('\n') || '';
     const userDataScript = readFileSync(
       join(__dirname, '..', 'scripts', 'init.sh'),
       'utf8'
     )
       .replace(/__DOMAIN__/g, config.domain)
       .replace(/__CODE_SERVER_PASSWORD__/g, config.codeServerPassword)
-      .replace(/__EMAIL__/g, config.email);
+      .replace(/__EMAIL__/g, config.email)
+      .replace(/__ADDITIONAL_SSH_KEYS__/g, additionalSshKeys);
 
     const userData = UserData.forLinux();
     userData.addCommands(userDataScript);

@@ -1,48 +1,50 @@
-# Claude Server - Instructions pour Claude Code
+# Claude Server - Instructions for Claude Code
 
-## Contexte
+## Context
 
-Projet CDK déployant un environnement de développement remote sur AWS : EC2 (ARM64) + code-server (VS Code browser) + Claude Code CLI.
+CDK project deploying a remote development environment on AWS: EC2 (ARM64) + code-server (VS Code browser) + Claude Code CLI.
 
-## Fichiers clés
+## Key Files
 
-- `lib/claude-server-stack.ts` - Stack CDK principale (VPC, SG, EC2, Elastic IP optionnel, DNS optionnel)
-- `config/config.ts` - Configuration sensible (gitignored) - copier depuis `config.example.ts`
-- `scripts/init.sh` - Script user-data EC2 (installe nginx, code-server, certbot, Claude CLI)
-- `bin/claude-server.ts` - Point d'entrée CDK
+- `lib/claude-server-stack.ts` - Main CDK stack (VPC, SG, EC2, optional Elastic IP, optional DNS)
+- `config/config.ts` - Sensitive configuration (gitignored) - copy from `config.example.ts`
+- `scripts/init.sh` - EC2 user-data script (installs nginx, code-server, certbot, Claude CLI)
+- `bin/claude-server.ts` - CDK entry point
 
-## Règles importantes
+## Important Rules
 
-1. **NE JAMAIS commit `config/config.ts`** - contient des secrets (passwords, domain)
-2. SSH ouvert à 0.0.0.0/0 - c'est intentionnel pour flexibilité avec Termius
-3. DNS géré par CDK (pas par l'instance EC2) - si `useElasticIp: true` + `hostedZoneId` fourni
-4. L'instance n'a que les permissions SSM, pas Route 53
+1. **NEVER commit `config/config.ts`** - contains secrets (passwords, domain)
+2. SSH open to 0.0.0.0/0 - intentional for flexibility with Termius
+3. DNS managed by CDK (not by the EC2 instance) - if `useElasticIp: true` + `hostedZoneId` provided
+4. The instance only has SSM permissions, not Route 53
+5. **All documentation and comments must be in English**
 
 ## Configuration
 
-Options dans `config/config.ts` :
-- `region` - Région AWS
-- `domain` - Domaine pour code-server
-- `hostedZoneId` - Zone Route 53 (optionnel, pour DNS auto)
-- `useElasticIp` - Utiliser une IP statique (optionnel, défaut: false)
-- `codeServerPassword` - Mot de passe VS Code web
-- `email` - Email Let's Encrypt
-- `keyPairName` - Paire de clés EC2
-- `instanceType` - Type d'instance (défaut: t4g.small)
-- `volumeSize` - Taille EBS en GB
+Options in `config/config.ts`:
+- `region` - AWS Region
+- `domain` - Domain for code-server
+- `hostedZoneId` - Route 53 zone (optional, for auto DNS)
+- `useElasticIp` - Use a static IP (optional, default: false)
+- `codeServerPassword` - VS Code web password
+- `email` - Let's Encrypt email
+- `keyPairName` - EC2 key pair
+- `additionalSshPublicKeys` - Additional SSH public keys (optional, for YubiKeys etc.)
+- `instanceType` - Instance type (default: t4g.small)
+- `volumeSize` - EBS volume size in GB
 
-## Commandes
+## Commands
 
 ```bash
-cdk synth    # Générer CloudFormation
-cdk deploy   # Déployer
-cdk diff     # Voir les changements
-cdk destroy  # Supprimer
+cdk synth    # Generate CloudFormation
+cdk deploy   # Deploy
+cdk diff     # See changes
+cdk destroy  # Destroy
 npm test     # Tests
 ```
 
 ## Debugging
 
-- Logs user-data : `/var/log/user-data.log`
-- Logs code-server : `journalctl -u code-server@ec2-user`
-- Logs nginx : `/var/log/nginx/error.log`
+- User-data logs: `/var/log/user-data.log`
+- code-server logs: `journalctl -u code-server@ec2-user`
+- nginx logs: `/var/log/nginx/error.log`

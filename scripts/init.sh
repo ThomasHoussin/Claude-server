@@ -43,7 +43,7 @@ mkdir -p /var/www/html
 cat > /etc/nginx/conf.d/code-server.conf << 'NGINX_EOF'
 server {
     listen 80;
-    server_name __DOMAIN_PLACEHOLDER__;
+    server_name __DOMAIN__;
 
     location /.well-known/acme-challenge/ {
         root /var/www/html;
@@ -54,8 +54,6 @@ server {
     }
 }
 NGINX_EOF
-
-sed -i "s/__DOMAIN_PLACEHOLDER__/${DOMAIN}/g" /etc/nginx/conf.d/code-server.conf
 
 systemctl start nginx
 systemctl enable nginx
@@ -79,7 +77,7 @@ map $http_upgrade $connection_upgrade {
 
 server {
     listen 80;
-    server_name __DOMAIN_PLACEHOLDER__;
+    server_name __DOMAIN__;
 
     location /.well-known/acme-challenge/ {
         root /var/www/html;
@@ -92,11 +90,11 @@ server {
 
 server {
     listen 443 ssl http2;
-    server_name __DOMAIN_PLACEHOLDER__;
+    server_name __DOMAIN__;
 
     # SSL certificates
-    ssl_certificate /etc/letsencrypt/live/__DOMAIN_PLACEHOLDER__/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/__DOMAIN_PLACEHOLDER__/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/__DOMAIN__/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/__DOMAIN__/privkey.pem;
 
     # SSL settings
     ssl_protocols TLSv1.2 TLSv1.3;
@@ -125,11 +123,24 @@ server {
 }
 NGINX_EOF
 
-sed -i "s/__DOMAIN_PLACEHOLDER__/${DOMAIN}/g" /etc/nginx/conf.d/code-server.conf
 nginx -t && systemctl restart nginx
 
+# === ADDITIONAL SSH KEYS ===
+echo "[5/6] Adding additional SSH keys..."
+ADDITIONAL_KEYS="__ADDITIONAL_SSH_KEYS__"
+
+# Check if keys were provided (starts with ssh- means valid key, not empty placeholder)
+if echo "$ADDITIONAL_KEYS" | grep -q "^ssh-"; then
+  echo "$ADDITIONAL_KEYS" >> /home/ec2-user/.ssh/authorized_keys
+  chmod 600 /home/ec2-user/.ssh/authorized_keys
+  chown ec2-user:ec2-user /home/ec2-user/.ssh/authorized_keys
+  echo "Additional SSH keys added"
+else
+  echo "No additional SSH keys configured"
+fi
+
 # === CLAUDE CODE ===
-echo "[5/5] Installing Claude Code..."
+echo "[6/6] Installing Claude Code..."
 npm install -g @anthropic-ai/claude-code
 
 # === FINALISATION ===

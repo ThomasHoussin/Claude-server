@@ -31,6 +31,11 @@ export interface Config {
   // EC2 Key Pair name for SSH access (must exist in AWS)
   keyPairName: string;
 
+  // Additional SSH public keys (optional)
+  // These keys are added to ~/.ssh/authorized_keys in addition to the EC2 key pair
+  // Useful for YubiKeys or keys from other machines
+  additionalSshPublicKeys?: string[];
+
   // EC2 instance type (t4g.micro or t4g.small recommended)
   instanceType: string;
 
@@ -46,6 +51,9 @@ export const config: Config = {
   codeServerPassword: 'change-me-with-strong-password',
   email: 'your@email.com',
   keyPairName: 'your-key-pair-name',
+  additionalSshPublicKeys: [
+    // 'ssh-rsa AAAAB3NzaC1... user@machine',
+  ],
   instanceType: 't4g.small',
   volumeSize: 30,
 };
