@@ -1,5 +1,5 @@
 {
-  "app": "npx ts-node --prefer-ts-exts bin/claude-server.ts",
+  "app": "npx tsx bin/claude-server.ts",
   "watch": {
     "include": [
       "**"

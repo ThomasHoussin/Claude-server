@@ -1,8 +1,34 @@
+# Compiled output
 *.js
 !jest.config.js
 *.d.ts
 node_modules
 
-# CDK asset staging directory
+# CDK
 .cdk.staging
 cdk.out
+
+# Sensitive configuration - NEVER COMMIT
+config/config.ts
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/

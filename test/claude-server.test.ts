@@ -1,17 +1,18 @@
-// import * as cdk from 'aws-cdk-lib/core';
+// import { App } from 'aws-cdk-lib';
 // import { Template } from 'aws-cdk-lib/assertions';
-// import * as ClaudeServer from '../lib/claude-server-stack';
+// import { ClaudeServerStack } from '../lib/claude-server-stack.js';
 
-// example test. To run these tests, uncomment this file along with the
-// example resource in lib/claude-server-stack.ts
-test('SQS Queue Created', () => {
-//   const app = new cdk.App();
-//     // WHEN
-//   const stack = new ClaudeServer.ClaudeServerStack(app, 'MyTestStack');
-//     // THEN
-//   const template = Template.fromStack(stack);
-
-//   template.hasResourceProperties('AWS::SQS::Queue', {
-//     VisibilityTimeout: 300
-//   });
+// Example test - uncomment to enable
+// Note: Tests require a valid config/config.ts file
+test('placeholder test', () => {
+  // const app = new App();
+  // const stack = new ClaudeServerStack(app, 'TestStack', {
+  //   env: { account: '123456789012', region: 'us-east-1' },
+  // });
+  // const template = Template.fromStack(stack);
+  //
+  // template.hasResourceProperties('AWS::EC2::Instance', {
+  //   InstanceType: 't4g.small',
+  // });
+  expect(true).toBe(true);
 });
