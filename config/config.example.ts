@@ -22,8 +22,9 @@ export interface Config {
   // When false: uses auto-assigned public IP (changes on restart)
   useElasticIp?: boolean;
 
-  // Password to access code-server web interface
-  codeServerPassword: string;
+  // SSM Parameter name containing the code-server password
+  // Must be created manually as SecureString before deployment
+  ssmPasswordParameterName: string;
 
   // Email for Let's Encrypt certificate notifications
   email: string;
@@ -48,7 +49,7 @@ export const config: Config = {
   domain: 'dev.example.com',
   hostedZoneId: 'ZXXXXXXXXXXXXX', // Optional: enables automatic DNS setup
   useElasticIp: true,
-  codeServerPassword: 'change-me-with-strong-password',
+  ssmPasswordParameterName: '/claude-server/code-server-password',
   email: 'your@email.com',
   keyPairName: 'your-key-pair-name',
   additionalSshPublicKeys: [

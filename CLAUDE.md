@@ -26,18 +26,30 @@ Options in `config/config.ts`:
 - `domain` - Domain for code-server
 - `hostedZoneId` - Route 53 zone (optional, for auto DNS)
 - `useElasticIp` - Use a static IP (optional, default: false)
-- `codeServerPassword` - VS Code web password
+- `ssmPasswordParameterName` - SSM Parameter name for code-server password (SecureString)
 - `email` - Let's Encrypt email
 - `keyPairName` - EC2 key pair
 - `additionalSshPublicKeys` - Additional SSH public keys (optional, for YubiKeys etc.)
 - `instanceType` - Instance type (default: t4g.small)
 - `volumeSize` - EBS volume size in GB
 
+## SSM Password Setup (Required before deploy)
+
+Create the password parameter manually as SecureString:
+
+```bash
+aws ssm put-parameter \
+  --name "/claude-server/code-server-password" \
+  --type SecureString \
+  --value "your-strong-password" \
+  --region us-east-1
+```
+
 ## Commands
 
 ```bash
-cdk synth    # Generate CloudFormation
-cdk deploy   # Deploy
+cdk synth    # Generate CloudFormation (validates SSM parameter)
+cdk deploy   # Deploy (validates SSM parameter first)
 cdk diff     # See changes
 cdk destroy  # Destroy
 npm test     # Tests

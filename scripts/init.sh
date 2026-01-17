@@ -1,3 +1,4 @@
+#!/bin/bash
 set -e
 
 # Logging setup
@@ -10,16 +11,52 @@ echo "=========================================="
 
 # === CONFIGURATION (injected by CDK) ===
 DOMAIN="__DOMAIN__"
-CODE_SERVER_PASSWORD="__CODE_SERVER_PASSWORD__"
 EMAIL="__EMAIL__"
+AWS_REGION="__AWS_REGION__"
+SSM_PASSWORD_PARAMETER="__SSM_PASSWORD_PARAMETER__"
 
 # === INSTALLATION PACKAGES ===
-echo "[1/6] Installing packages..."
+echo "[1/7] Installing packages..."
 dnf update -y
 dnf install -y nginx git nodejs npm
 
+# === RETRIEVE PASSWORD FROM SSM ===
+echo "[2/7] Retrieving code-server password from SSM..."
+
+# Check if AWS CLI is available
+if ! command -v aws &> /dev/null; then
+  echo "ERROR: AWS CLI is not installed or not in PATH"
+  exit 1
+fi
+
+# Retrieve password with explicit error handling
+set +e  # Temporarily disable exit on error to capture the error message
+SSM_OUTPUT=$(aws ssm get-parameter \
+  --name "${SSM_PASSWORD_PARAMETER}" \
+  --with-decryption \
+  --query "Parameter.Value" \
+  --output text \
+  --region "${AWS_REGION}" 2>&1)
+SSM_EXIT_CODE=$?
+set -e  # Re-enable exit on error
+
+if [ $SSM_EXIT_CODE -ne 0 ]; then
+  echo "ERROR: Failed to retrieve password from SSM Parameter Store"
+  echo "Details: ${SSM_OUTPUT}"
+  echo "Check: 1) Parameter exists, 2) IAM permissions, 3) Parameter name is correct"
+  exit 1
+fi
+
+CODE_SERVER_PASSWORD="${SSM_OUTPUT}"
+
+if [ -z "$CODE_SERVER_PASSWORD" ]; then
+  echo "ERROR: Retrieved empty password from SSM Parameter Store (${SSM_PASSWORD_PARAMETER})"
+  exit 1
+fi
+echo "Password retrieved successfully from SSM"
+
 # === CODE-SERVER ===
-echo "[2/6] Installing code-server..."
+echo "[3/7] Installing code-server..."
 export HOME=/root
 if ! command -v code-server &> /dev/null; then
   curl -fsSL https://code-server.dev/install.sh | sh
@@ -37,12 +74,13 @@ cert: false
 EOF
 
 chown -R ec2-user:ec2-user /home/ec2-user/.config
+chmod 600 /home/ec2-user/.config/code-server/config.yaml
 
 # Service code-server
 systemctl enable --now code-server@ec2-user
 
 # === NGINX (HTTP only for certbot) ===
-echo "[3/6] Configuring nginx..."
+echo "[4/7] Configuring nginx..."
 mkdir -p /var/www/html
 
 cat > /etc/nginx/conf.d/code-server.conf << 'NGINX_EOF'
@@ -64,7 +102,7 @@ systemctl enable nginx
 systemctl restart nginx
 
 # === CERTBOT ===
-echo "[4/6] Setting up SSL certificate..."
+echo "[5/7] Setting up SSL certificate..."
 dnf install -y certbot
 
 if [ -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]; then
@@ -135,7 +173,7 @@ NGINX_EOF
 nginx -t && systemctl restart nginx
 
 # === ADDITIONAL SSH KEYS ===
-echo "[5/6] Adding additional SSH keys..."
+echo "[6/7] Adding additional SSH keys..."
 ADDITIONAL_KEYS="__ADDITIONAL_SSH_KEYS__"
 
 # Check if keys were provided (starts with ssh- means valid key, not empty placeholder)
@@ -153,7 +191,7 @@ else
 fi
 
 # === CLAUDE CODE ===
-echo "[6/6] Installing Claude Code..."
+echo "[7/7] Installing Claude Code..."
 if ! command -v claude &> /dev/null; then
   npm install -g @anthropic-ai/claude-code
 else
@@ -167,7 +205,7 @@ echo "=========================================="
 echo ""
 echo "Access your dev environment:"
 echo "  URL: https://${DOMAIN}"
-echo "  Password: (configured in code-server)"
+echo "  Password: stored in SSM Parameter Store (${SSM_PASSWORD_PARAMETER})"
 echo ""
 echo "SSH: ssh ec2-user@${DOMAIN}"
 echo ""

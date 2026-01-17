@@ -68,7 +68,7 @@ Edit `config/config.ts` with your values:
 |----------|-------------|---------|
 | `region` | AWS region for deployment | `us-east-1` |
 | `domain` | Subdomain for code-server | `dev.mysite.com` |
-| `codeServerPassword` | Password for code-server access | `MyStr0ngP@ss!` |
+| `ssmPasswordParameterName` | SSM Parameter name for password | `/claude-server/code-server-password` |
 | `email` | Email for Let's Encrypt | `me@email.com` |
 | `keyPairName` | EC2 Key Pair name | `my-key-pair` |
 | `additionalSshPublicKeys` | Additional SSH public keys (optional) | `['ssh-rsa AAAA...']` |
@@ -79,17 +79,29 @@ Edit `config/config.ts` with your values:
 
 **Note:** If `useElasticIp` is `true` and `hostedZoneId` is provided, DNS is managed automatically by CDK. Otherwise, create the DNS A record manually.
 
-### 3. Bootstrap CDK (first time only)
+### 3. Create the password in SSM Parameter Store
+
+```bash
+aws ssm put-parameter \
+  --name "/claude-server/code-server-password" \
+  --type SecureString \
+  --value "your-strong-password" \
+  --region us-east-1
+```
+
+### 4. Bootstrap CDK (first time only)
 
 ```bash
 cdk bootstrap aws://YOUR_ACCOUNT_ID/YOUR_REGION
 ```
 
-### 4. Deploy
+### 5. Deploy
 
 ```bash
 cdk deploy
 ```
+
+CDK automatically validates that the SSM parameter exists before deploying.
 
 ## Usage
 
@@ -125,7 +137,7 @@ To reduce costs:
 | Command | Description |
 |---------|-------------|
 | `cdk synth` | Generate CloudFormation template |
-| `cdk deploy` | Deploy the stack |
+| `cdk deploy` | Deploy (validates SSM parameter first) |
 | `cdk diff` | Show changes |
 | `cdk destroy` | Delete the stack |
 
@@ -158,6 +170,7 @@ sudo certbot renew
 
 - SSH is open to all IPs (0.0.0.0/0). Consider restricting to your IP for better security.
 - code-server is protected by password authentication.
+- Password is stored securely in AWS SSM Parameter Store as SecureString (encrypted with KMS).
 - SSM Session Manager is enabled as a backup access method.
 - Never commit `config/config.ts` to version control.
 

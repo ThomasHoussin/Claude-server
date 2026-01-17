@@ -22,6 +22,7 @@ import {
   ServicePrincipal,
   ManagedPolicy,
 } from 'aws-cdk-lib/aws-iam';
+import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { HostedZone, ARecord, RecordTarget } from 'aws-cdk-lib/aws-route53';
 import { Construct } from 'constructs';
 import { readFileSync } from 'fs';
@@ -46,9 +47,9 @@ function validateConfig(cfg: Config): void {
     throw new Error(`Invalid hostedZoneId: "${cfg.hostedZoneId}". Must start with 'Z'`);
   }
 
-  // Password validation (minimum 8 characters)
-  if (!cfg.codeServerPassword || cfg.codeServerPassword.length < 8) {
-    throw new Error('codeServerPassword must be at least 8 characters');
+  // SSM Parameter name validation
+  if (!cfg.ssmPasswordParameterName || !cfg.ssmPasswordParameterName.startsWith('/')) {
+    throw new Error('ssmPasswordParameterName must start with "/" (e.g., /claude-server/code-server-password)');
   }
 
   // Email validation
@@ -163,16 +164,28 @@ export class ClaudeServerStack extends Stack {
       ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore')
     );
 
+    // Reference existing SecureString parameter (created manually by user)
+    const passwordParameter = StringParameter.fromSecureStringParameterAttributes(
+      this, 'CodeServerPassword', {
+        parameterName: config.ssmPasswordParameterName,
+      }
+    );
+
+    // Grant read access to the instance
+    passwordParameter.grantRead(role);
+
     // Read and configure user data script
+    // Note: Password is NOT injected here - retrieved from SSM at runtime
     const additionalSshKeys = config.additionalSshPublicKeys?.join('\n') || '';
     const userDataScript = readFileSync(
       join(__dirname, '..', 'scripts', 'init.sh'),
       'utf8'
     )
       .replace(/__DOMAIN__/g, config.domain)
-      .replace(/__CODE_SERVER_PASSWORD__/g, config.codeServerPassword)
       .replace(/__EMAIL__/g, config.email)
-      .replace(/__ADDITIONAL_SSH_KEYS__/g, additionalSshKeys);
+      .replace(/__ADDITIONAL_SSH_KEYS__/g, additionalSshKeys)
+      .replace(/__AWS_REGION__/g, config.region)
+      .replace(/__SSM_PASSWORD_PARAMETER__/g, config.ssmPasswordParameterName);
 
     const userData = UserData.forLinux();
     userData.addCommands(userDataScript);
@@ -258,6 +271,11 @@ export class ClaudeServerStack extends Stack {
       description: dnsAutoConfigured
         ? 'DNS configured automatically via CDK'
         : 'DNS configuration required (manual setup in Route 53)',
+    });
+
+    new CfnOutput(this, 'PasswordLocation', {
+      value: `SSM Parameter Store: ${config.ssmPasswordParameterName}`,
+      description: 'Password stored securely in SSM Parameter Store (SecureString)',
     });
   }
 }
