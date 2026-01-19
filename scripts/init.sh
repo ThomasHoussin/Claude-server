@@ -143,7 +143,8 @@ server {
 }
 
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;
     server_name __DOMAIN__;
 
     # SSL certificates
@@ -164,13 +165,28 @@ server {
 
     location / {
         proxy_pass http://127.0.0.1:8080;
+
+        # Force HTTP/1.1 (required for WebSocket)
+        proxy_http_version 1.1;
+
+        # WebSocket upgrade headers
         proxy_set_header Host $host;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
         proxy_set_header Accept-Encoding gzip;
+
+        # Forwarding headers - helps code-server build correct WebSocket URLs
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+
+        # Disable buffering for WebSocket real-time data
+        proxy_buffering off;
+        proxy_cache off;
+
+        # Timeouts
         proxy_read_timeout 600s;
         proxy_send_timeout 600s;
     }
